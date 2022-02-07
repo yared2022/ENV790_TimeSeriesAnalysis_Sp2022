@@ -3,6 +3,8 @@ title: "Lab 04: Trend and Seasonality"
 author: "Luana Lima"
 date: "02/10/2021"
 output: pdf_document
+editor_options: 
+  chunk_output_type: inline
 ---
 
 ## Objectives
@@ -248,7 +250,7 @@ inflow_data_new <- cbind(my_date, ts_inflow_data)
 Some test only work for non-seasonal data. SO let's create another series with yearly averages for inflow.
 
 ```{r}
-iHP=1
+iHP=2
 #Group data in yearly steps instances
 inflow_data_matrix <- matrix(ts_inflow_data[,iHP],byrow=FALSE,nrow=12)
 inflow_data_yearly <- colMeans(inflow_data_matrix)
