@@ -149,7 +149,7 @@ sd_inflow <- sd(na.exclude(inflow_random))
 cat(mean_inflow,sd_inflow)
 
 
-```
+=```
 ## Missing observations
 
 The decompose function introduced NAs in the beginning and end of the data set. Let's just remove them. NAs on the tails can be simply removed.
@@ -186,7 +186,7 @@ ggplot(inflow_random, aes(x=month, y=inflow)) +
 ggplot(inflow_random, aes(x=date, y=inflow)) +
             geom_line() +
             geom_abline(slope=0,intercept=3*sd_inflow,color="red") +
-            geom_abline(slope=0,intercept=-3*sd_inflow,color="red")
+            geom_abline(slope=0,intercept=-3*sd_inflow,color="red") # Plus or minus 3 st. dev. anything above the st.dev. could be tested for outliers
 
 ggplot(inflow_random, aes(y=inflow)) +
             geom_boxplot() 

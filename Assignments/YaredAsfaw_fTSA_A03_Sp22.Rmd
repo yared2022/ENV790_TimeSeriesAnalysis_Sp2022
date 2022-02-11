@@ -1,0 +1,405 @@
+---
+title: "ENV 790.30 - Time Series Analysis for Energy Data | Spring 2022"
+subtitle: "Assignment 3 - Due date 02/08/22"
+author: "Yared S. Asfaw"
+output: pdf_document
+geometry: margin=2.54cm
+editor_options: 
+  chunk_output_type: console
+---
+  
+## Directions
+  
+You should open the .rmd file corresponding to this assignment on RStudio. The file is available on our class repository on Github. 
+
+Once you have the project open the first thing you will do is change "Student Name" on line 3 with your name. 
+Then you will start working through the assignment by  **creating code and output** that answer each question. Be sure to use this assignment document. Your report should contain the answer to each question and any plots/tables you obtained (when applicable).
+
+Please keep this R code chunk options for the report. It is easier for us to grade when we can see code and output together. And the tidy.opts will make sure that line breaks on your code chunks are automatically added for better visualization. 
+
+```{r setup, include=FALSE} 
+knitr::opts_chunk$set(echo = TRUE,tidy.opts=list(width.cutoff=80), tidy=FALSE) 
+```
+
+When you have completed the assignment, **Knit** the text and code into a single PDF file. Rename the pdf file such that it includes your first and last name (e.g., "LuanaLima_TSA_A03_Sp22.Rmd"). Submit this pdf using Sakai. 
+
+## Questions 
+
+Consider the same data you used for A2 from the spreadsheet "Table_10.1_Renewable_Energy_Production_and_Consumption_by_Source.xlsx". The data comes from the US Energy Information and Administration and corresponds to the January 2022 **Monthly** Energy Review. Once again you will work only with the following columns: Total Biomass Energy Production, Total Renewable Energy Production, Hydroelectric Power Consumption. Create a data frame structure with these three time series only. 
+
+R packages needed for this assignment:"forecast","tseries", and "Kendall". Install these packages, if you haven't done yet. Do not forget to load them before running your script, since they are NOT default packages.\\
+
+# Loading packages
+
+```{r package, message=FALSE}
+#Load/install required package here
+library(lubridate)
+library(ggplot2)
+library(forecast)
+library(Kendall)
+library(tseries)
+library(openxlsx)
+```
+
+```{r}
+#Importing the data set
+library(openxlsx)
+us_energy.data <- read.xlsx("./Data/Raw/Table_10.1_Ren._Energy_PC._by_Source.xlsx", startRow=11)
+
+head(us_energy.data)
+# Select the three variables (Total Biomass Energy #Production (TEBP), Total Renewable Energy Production #(TREP) and Hydroelectric Power Consumption (HEPC); and # Remove the row that has the unit of measurement
+us_energy.df <- data.frame(us_energy.data[-1,c(1,4:6)]) 
+head(us_energy.df) 
+colnames(us_energy.df)
+
+# renaming the column names for convenience
+colnames(us_energy.df) <- c("my_date","TBEP", "TREP", "HEPC")
+colnames(us_energy.df)
+head(us_energy.df)
+
+#Checking the class of the object created
+is.data.frame(us_energy.df)
+
+# Checking the data types of the selected variables
+sapply(us_energy.df, class)
+```
+
+
+```{r}
+# formatting the my_date column to "Date"
+
+start_date <- as.Date("01/01/1973", format = "%m/%d/%Y") # the date format in the dataset is m/d/y
+us_energy.df$my_date <- seq(start_date, by= "month", length.out=585)
+```
+
+```{r}
+# Changing the data types into numeric
+us_energy.df$TBEP <- as.numeric(us_energy.df$TBEP)
+us_energy.df$TREP <- as.numeric(us_energy.df$TREP)
+us_energy.df$HEPC <- as.numeric(us_energy.df$HEPC)
+head(us_energy.df)
+sapply(us_energy.df, class)
+str(us_energy.df)
+tail(us_energy.df)
+```
+
+##Trend Component
+
+### Q1
+Create a plot window that has one row and three columns. And then for each object on your data frame, fill the plot window with time series plot, ACF and PACF. You may use the some code form A2, but I want all three plots on the same window this time. (Hint: use par() function)
+
+```{r}
+# Creating the time series object for each series
+##Time series object of TBEP, TREP, HEPC
+ts_us_TBEP <- ts(us_energy.df$TBEP, start = c(1973, 1), frequency= 12)
+ts_us_TREP <- ts(us_energy.df$TREP, start = c(1973, 1), frequency= 12)
+ts_us_HEPC <- ts(us_energy.df$HEPC, start = c(1973, 1), frequency= 12)
+
+```
+
+
+```{r}
+
+par(mfrow= c(1,3))
+plot(ts_us_TBEP,type="l",col="green",xlab="Year",ylab="BEP [Trillion Btu]",
+main="U.S.Total Biomass Energy Production (TBEP)")
+acf(ts_us_TBEP, lag.max = 40,plot = TRUE) 
+pacf(ts_us_TBEP, lag.max = 40,plot = TRUE)
+
+par(mfrow= c(1,3))
+plot(ts_us_TREP, type="l", col="blue", xlab="Year", ylab="TREP in Trillion Btu", main="U.S. Total Renewable Energy Production (TREP)") 
+acf(ts_us_TREP, lag.max = 40,plot = TRUE) 
+pacf(ts_us_TREP, lag.max = 40,plot = TRUE)
+
+par(mfrow= c(1,3))
+plot(ts_us_HEPC, type="l", col="red", xlab="Year", ylab="HEPC in Trillion Btu", main="U.S. Hydroelectric Power Consumption (HEPC)") 
+acf(ts_us_HEPC, lag.max = 40,plot = TRUE) 
+pacf(ts_us_HEPC, lag.max = 40,plot = TRUE)
+
+```
+
+### Q2
+From the plot in Q1, do the series Total Biomass Energy Production, Total Renewable Energy Production, Hydroelectric Power Consumption appear to have a trend? If yes, what kind of trend?
+
+### Yes, there is a trend in all the three variables (parameters). In general, the Total Biomass Energy Production (TBEP) and the Total Renewable Energy Production (TREP) show an increasing trend whereas the Hydroelectric Power Consumption show a decreasing trend overtime. Closely looking at the TBEP and TREP, the TBEP started showing a decrease at the final year of the observation period, however, the TREP shows a continued increase even at the end of the observation period.
+
+### Q3
+Use the *lm()* function to fit a linear trend to the three time series. Ask R to print the summary of the regression. Interpret the regression output, i.e., slope and intercept. Save the regression coefficients for further analysis.
+
+```{r}
+# Total Biomass Energy Production (TBEP) linear trend and regression
+
+t <- c(1:585) # Creating vector 't'
+
+linear_trend_TBEP = lm(ts_us_TBEP ~ t)
+summary(linear_trend_TBEP)
+
+beta0_TBEP <- as.numeric(linear_trend_TBEP$coefficients[1]) # Intercept
+beta1_TBEP <- as.numeric(linear_trend_TBEP$coefficients[2]) # Slope
+
+ggplot(us_energy.df, aes(x=my_date, y=us_energy.df[,2]))+
+ geom_line(color="green")+
+ ylab("TBEP [Trillion Btu]")+
+ xlab("Year")+
+ geom_smooth(color = "red", method = "lm")
+```
+
+### As time (t) increases by one unit, the TBEP increases by 0.474 times.
+
+```{r}
+# Total Renewable Energy Production linear trend and regression
+
+linear_trend_TREP = lm(ts_us_TREP ~ t)
+summary(linear_trend_TREP)
+
+beta0_TREP <- as.numeric(linear_trend_TREP$coefficients[1]) # Intercept
+beta1_TREP <- as.numeric(linear_trend_TREP$coefficients[2]) # Slope
+
+ggplot(us_energy.df, aes(x=my_date, y=us_energy.df[,3]))+
+ geom_line(color="blue")+
+ ylab("TREP [Trillion Btu]")+
+ xlab("Year")+
+ geom_smooth(color = "red", method = "lm")
+```
+
+### As time (t) increases by one unit, the TREP increases by 0.88 times.
+
+```{r}
+#Hydroelectirc Power Consumption linear trend and regression
+
+linear_trend_HEPC = lm(ts_us_HEPC ~ t)
+summary(linear_trend_HEPC)
+
+beta0_HEPC <- as.numeric(linear_trend_HEPC$coefficients[1]) # Intercept
+beta1_HEPC <- as.numeric(linear_trend_HEPC$coefficients[2]) # Slope
+
+ggplot(us_energy.df, aes(x=my_date, y=us_energy.df[,4]))+
+ geom_line(color="red")+
+ ylab("HEPC [Trillion Btu]")+
+ xlab("Year")+
+ geom_smooth(color = "black", method = "lm")
+```
+
+### As time (t) increases by one unit, the HEPC decreases by 0.079 times.
+ 
+### Q4
+Use the regression coefficients from Q3 to detrend the series. Plot the detrended series and compare with the plots from Q1. What happened? Did anything change?
+
+```{r}
+# Removing the trend from the TBEP series
+
+detrend_ts_us_TBEP <- ts_us_TBEP - (beta0_TBEP + beta1_TBEP * t)
+
+ggplot(us_energy.df, aes(x=my_date, y=us_energy.df[,2]))+
+  geom_line(color="green")+
+  ylab("TBEP [Trillion Btu]")+
+  xlab("Year")+
+  geom_smooth(color = "red", method = "lm")+
+  geom_line(aes(y=detrend_ts_us_TBEP), color="purple")+
+  geom_smooth(aes(y=detrend_ts_us_TBEP), color="orange", method="lm")
+```
+
+### In the TBEP plot, the series in green is the original series with a red trend line that show a significantly increasing trend overtime. When we remove the trend from the original series, we get the new detrend series shown in purple with an orange trend line that has a zero slope. When the trend component removed from the series, the series seem to change to a kind of seasonal pattern. 
+
+```{r}
+# Removing the trend from the TREP series
+
+detrend_ts_us_TREP <- ts_us_TREP - (beta0_TREP + beta1_TREP * t)
+
+ggplot(us_energy.df, aes(x=my_date, y=us_energy.df[,3]))+
+  geom_line(color="blue")+
+  ylab("TREP [Trillion Btu]")+
+  xlab("Year")+
+  geom_smooth(color = "red", method = "lm")+
+  geom_line(aes(y=detrend_ts_us_TREP), color="green")+
+  geom_smooth(aes(y=detrend_ts_us_TREP), color="orange", method="lm")
+```
+
+### In the TREP plot, the series in blue is the original series with a red trend line that  show a significant increasing trend overtime. When we remove the trend from the original series, we get the new detrend series shown in green with an orange trend line that has a zero slope. When the trend component removed from the series, the series changed to a random pattern.
+
+```{r}
+# Removing the trend from the HEPC series
+
+detrend_ts_us_HEPC <- ts_us_HEPC - (beta0_HEPC + beta1_HEPC * t)
+
+ggplot(us_energy.df, aes(x=my_date, y=us_energy.df[,4]))+
+  geom_line(color="red")+
+  ylab("HEPC [Trillion Btu]")+
+  xlab("Year")+
+  geom_smooth(color = "blue", method = "lm")+
+  geom_line(aes(y=detrend_ts_us_HEPC), color="green")+
+  geom_smooth(aes(y=detrend_ts_us_HEPC), color="orange", method="lm")
+```
+
+### In the HEPC plot, the series in red is the original series with a blue trend line that show a decreasing trend overtime. When we remove the trend from the original series, we get the new detrend series shown in green with an orange trend line that has a zero slope. When the trend component removed from the series, the series changed to a kind of seasonal pattern. 
+
+### Q5
+Plot ACF and PACF for the detrended series and compare with the plots from Q1. Did the plots change? How?
+
+```{r}
+# ACF and PACF of the detrended series for TBEP
+
+par(mfrow = c(2,2))
+acf(ts_us_TBEP, lag.max = 40,plot = TRUE) 
+acf(detrend_ts_us_TBEP, lag.max = 40, plot=TRUE) 
+pacf(ts_us_TBEP, lag.max = 40,plot = TRUE)
+pacf(detrend_ts_us_TBEP, lag.max = 40, plot = TRUE)
+```
+
+### Yes, there is difference in the ACF and PACF plots of TBEP before and after the detrend. Before detrended, the ACF originally showed a slight decreasing trend overtime. When detrend, the ACF showed significant decreasing trend overtime. Similarly, in the case of PACF when detrended, there is a significant increasing trend in the correlation between the observations right after lag 1 to around lag 0.9 and at lag 2 which is higher than the original PACF. 
+
+```{r}
+# ACF and PACF of the detrended series for TREP
+
+par(mfrow=c(2,2))
+acf(ts_us_TREP, lag.max = 40,plot = TRUE)
+acf(detrend_ts_us_TREP, lag.max = 40, plot=TRUE)
+pacf(ts_us_TREP, lag.max = 40,plot = TRUE)
+pacf(detrend_ts_us_TREP, lag.max = 40, plot = TRUE)
+
+```
+
+### In the case of TREP, when detrended, the ACF plot show a seasonal decreasing pattern within a regular interval of about every lag. Similarly, in the PACF of the TREP, when detrended, the significance of the relationship among some observations around lags 0.9 and 1.5 get more pronounced than the trended series.
+
+```{r}
+# ACF and PACF of the detrended series for HEPC
+ 
+par(mfrow=c(2,2))
+acf(ts_us_HEPC, lag.max = 40,plot = TRUE)
+acf(detrend_ts_us_HEPC, lag.max = 40, plot=TRUE)
+pacf(ts_us_HEPC, lag.max = 40,plot = TRUE)
+pacf(detrend_ts_us_HEPC, lag.max = 40, plot = TRUE)
+```
+### In the trended and detrended acf and pacf plots of the HEPC, there is only one difference that can be observed in the detrended ACF and that is an increase in the correlation of the observations overtime around lags 1.5 and 2.5 which was smaller in the original ACF. 
+
+## Seasonal Component
+
+Set aside the detrended series and consider the original series again from Q1 to answer Q6 to Q8.
+
+### Q6
+Do the series seem to have a seasonal trend? Which serie/series? Use function *lm()* to fit a seasonal means model (i.e. using the seasonal dummies) to this/these time series. Ask R to print the summary of the regression. Interpret the regression output. Save the regression coefficients for further analysis.
+
+```{r}
+##Time series object of TBEP, TREP, HEPC
+ts_us_TBEP <- ts(us_energy.df$TBEP, start = c(1973, 1), frequency= 12)
+ts_us_TREP <- ts(us_energy.df$TREP, start = c(1973, 1), frequency= 12)
+ts_us_HEPC <- ts(us_energy.df$HEPC, start = c(1973, 1), frequency= 12)
+
+par(mfrow=c(1,3))
+plot(ts_us_TBEP) 
+plot(ts_us_TREP) 
+plot(ts_us_HEPC)
+```
+
+### Looking at the time series plots the TBEP and HEPC series have a seasonal trend.
+
+```{r}
+# TBEP
+# Apply the seasonal means model to create the seasonal dummies
+
+dummies_TBEP <- seasonaldummy(ts_us_TBEP)
+
+# Then fit a linear model to the seasonal dummies
+
+TBEP_seas_means_model=lm(us_energy.df$TBEP ~ dummies_TBEP)
+
+summary(TBEP_seas_means_model) 
+
+# Storing the regression coefficients
+beta0_int_TBEP = TBEP_seas_means_model$coefficients[1] 
+beta1_coeff_TBEP = TBEP_seas_means_model$coefficients[2:12]
+```
+
+### From the regression summary of the TBEP, the monthly TBEP showed a decrease throughout the yearin a pattern of significant decrease and less significant decrease. Fro example, the decrease in the month of January is around 1.5 times followed by a significant decrease in the month of February by 30.58 times, and then a less significant decrease in March (8.87 times) followed by a significant decrease in April (by 14.07 times) and so on. Thus, in general the observation showed as time increases, the montly TBEP decreases significantly and less significantly in an alterante manner.  
+
+```{r}
+# HEPC
+# Apply the seasonal means model to create the seasonal dummies
+
+dummies_HEPC <- seasonaldummy(ts_us_HEPC)
+
+# Then fit a linear model to the seasonal dummies
+
+HEPC_seas_means_model=lm(us_energy.df$HEPC ~ dummies_HEPC)
+
+summary(HEPC_seas_means_model) 
+
+# Storing the regression coefficients
+beta0_int_HEPC = HEPC_seas_means_model$coefficients[1] 
+beta1_coeff_HEPC = HEPC_seas_means_model$coefficients[2:12]
+
+```
+
+### From the regression summary, we can see that there is a decrease in HEPC during the months Feburary (by 8.09), August (by 17.85), September (by 49.85), October (by 48.07) and November (by 32.19), with the highest decrease observed in September (by 49.85). In the remaining months, the series shows an increase in the HEPC by a range of 10.51 - 39.96, except the month of February which show a decrease in the HEPC (by 8.090). The highest increase is in the month of May (by 39.96) and the lowest increase is in the month of July (by 10.51). These in general created a pattern of HEPC increase in some months (from March to July ) and then decrease in consumption in the following months (from August to November).The exceptional observation (the decrease in the month of February) requires additional information to explain. 
+
+### Q7
+Use the regression coefficients from Q6 to deseason the series. Plot the deseason series and compare with the plots from part Q1. Did anything change?
+
+```{r, fig.height=3, fig.width=4}
+# For TBEP
+# Compute the seasonal component 
+ts_us_TBEP_seas_comp=array(0,585)
+for(i in 1:585)
+  {
+  ts_us_TBEP_seas_comp[i]=(beta0_int_TBEP+beta1_coeff_TBEP%*%dummies_HEPC[i,])
+  }
+# Removing the seasonal component
+deseason_ts_us_TBEP <- us_energy.df$TBEP - ts_us_TBEP_seas_comp
+
+par(mfrow=c(1,2))
+ggplot(us_energy.df, aes(x=my_date, y=TBEP)) +
+            geom_line(color="green") +
+            ylab("TBEP [Trillion Btu") +
+            xlab("Year") +
+            geom_line(aes(y=deseason_ts_us_TBEP), col="blue")
+
+ggplot(us_energy.df, aes(x=my_date, y=us_energy.df[,2]))+
+  geom_line(color="green")+
+  ylab("TBEP [Trillion Btu]")+
+  xlab("Year")
+```
+
+### When compared with the original series, there is a small change in the pattern. When deseasoned, the series losses its seasonal pattern and demonstrates a random movement overtime.
+
+```{r, fig.height=3, fig.width=4}
+# For HEPC
+# Compute the seasonal component 
+ts_us_HEPC_seas_comp=array(0,585)
+for(i in 1:585)
+  {
+  ts_us_HEPC_seas_comp[i]=(beta0_int_HEPC+beta1_coeff_HEPC%*%dummies_HEPC[i,])
+  }
+# Removing the seasonal component
+deseason_ts_us_HEPC <- us_energy.df$HEPC - ts_us_HEPC_seas_comp
+
+par(mfrow=c(1,2))
+ggplot(us_energy.df, aes(x=my_date, y=HEPC)) +
+            geom_line(color="red") +
+            ylab("HEPC [Trillion Btu") +
+            xlab("Year") +
+            geom_line(aes(y=deseason_ts_us_HEPC), col="green")
+
+ggplot(us_energy.df, aes(x=my_date, y=us_energy.df[,4]))+
+  geom_line(color="red")+
+  ylab("HEPC [Trillion Btu]")+
+  xlab("Year")
+```
+
+### When compared with the original series, yes, there is a change in the pattern. When deseasoned, the series losses its seasonal pattern and demonstrates a random movement overtime.
+
+### Q8
+Plot ACF and PACF for the deseason series and compare with the plots from Q1. Did the plots change? How?
+
+```{r}
+# Comparing the acf and pacf plots of seasonal and deseason series of HEPC
+
+par(mfrow=c(2,2))
+acf(ts_us_HEPC, lag.max = 40,plot = TRUE) 
+acf(deseason_ts_us_HEPC, lag.max = 40)
+pacf(ts_us_HEPC, lag.max = 40,plot = TRUE)
+pacf(deseason_ts_us_HEPC, lag.max = 40)
+
+```
+
+### When comparing the ACF plots of the HEPC, there is a completely different pattern change from seasonal increase-decrease (in the original ACF) to a continuous gradual significant decrease as the lags increase reaching to insignificant correlation among the observations at lag 40. In case of the PACF, when the seasonal component removed, the significant correlation of observations after the first lag disappear along with it leaving the significant at lag one unchanged/ the same. 
+

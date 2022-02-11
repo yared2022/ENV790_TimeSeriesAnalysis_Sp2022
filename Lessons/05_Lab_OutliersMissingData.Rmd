@@ -75,7 +75,7 @@ ggplot(wind_data, aes(x = DATE, y = AWND.1)) +
 ```
 ## Using pre-built function to clean series
 
-tsclean() from package 'forecast' identify and replace outliers and missing values in a time series using linear interpolation.
+tsclean() from package 'forecast' identify and replace outliers and missing values in a time series using linear interpolation (local mean).
 
 ```{r}
 
@@ -111,16 +111,22 @@ Additional info on decompose()
 ```{r}
 #Ex1: Using R decompose function decompose the wind data in seasonal, trend and random
 
+decomposed_data <- decompose(clean_wind_data)
+plot(decomposed_data)
+
 
 #Ex2: Store the three component in separate vector
-  
+  wind_random <- decomposed_data$random
+  wind_trend <- decomposed_data$trend
+  wind_season <- decomposed_data$seasonal
 
 #Ex3: Create one data frame with all three vector and the Date columns from wind_data
-
+df_wind_decomposed <- data.frame("date"= full_wind_data$Date, wind_trend, wind_random, wind_season)
 
 #Ex4: Inspect the data frame using head() and tail()
 
-
+head(df_wind_decomposed)
+tail(df_wind_decomposed)
 
 # Discuss the results
 
@@ -132,6 +138,11 @@ Discussion: Why the missing values??
 ```{r}
 
 #Ex5: Try to reproduce the trend component from decompose().
+
+decomposed_data <- decompose(clean_wind_data)
+plot(decomposed_data)
+
+ggplot(decomposed_data) + geom_smooth(method = "lm")
 
 #Ex6: Try to reproduce the seasonal component from decompose().
 
