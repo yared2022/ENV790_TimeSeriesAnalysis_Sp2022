@@ -111,7 +111,7 @@ Copy and paste part of your code for A3 where you compute regression for Total E
 ```{r, fig.height=3, fig.width=4}
 # Code from A03 for reference and use
 ts_us_TREP <- ts(us_TREP$TREP, start = c(1973, 1), frequency= 12)
-ts_us_TREP1 <- ts(us_TREP$TREP[-1,], start = c(1973, 1), frequency= 12)
+#ts_us_TREP1 <- ts(us_TREP$TREP[-1,], start = c(1973, 1), frequency= 12)
 t <- c(1:585)
 linear_trend_TREP = lm(ts_us_TREP ~ t)
 summary(linear_trend_TREP)
@@ -141,20 +141,19 @@ us_TREP_diff # Differenced series
 
 # Removing the first observations from the original series and the detrended by regrression series
 us_TREP1 <- us_TREP[-1,]
+detrend_ts_us_TREP1 <- as.data.frame(detrend_ts_us_TREP)
+detrend_ts_us_TREP2 <- as.data.frame(detrend_ts_us_TREP1[-1,])
+us_TREP_diff1 <- as.data.frame(us_TREP_diff)
 
 # Removing the first observation from the detrended by regrression series
-ts_us_TREP1 <- ts(us_TREP1$TREP, start = c(1973, 1), frequency= 12)
-t <- c(1:584)
-linear_trend_TREP1 = lm(ts_us_TREP1 ~ t)
-summary(linear_trend_TREP1)
-beta0_TREP1 <- as.numeric(linear_trend_TREP1$coefficients[1]) # Intercept
-beta1_TREP1 <- as.numeric(linear_trend_TREP1$coefficients[2]) # Slope
-detrend_ts_us_TREP1 <- ts_us_TREP1 - (beta0_TREP1 + beta1_TREP1 * t)
-
-# Looking for alternative way to remove the first observation from the detrended by regression series directly 
-#detrend_ts_us_TREP1 <- detrend_ts_us_TREP  [-1,]
-
-combined_series_df <- data.frame(month=month(us_TREP1$my_date), us_TREP1, detrend_ts_us_TREP1, diff_us_TREP)
+#ts_us_TREP1 <- ts(us_TREP1$TREP, start = c(1973, 1), frequency= 12)
+#t <- c(1:584)
+#linear_trend_TREP1 = lm(ts_us_TREP1 ~ t)
+#summary(linear_trend_TREP1)
+#beta0_TREP1 <- as.numeric(linear_trend_TREP1$coefficients[1]) # Intercept
+#beta1_TREP1 <- as.numeric(linear_trend_TREP1$coefficients[2]) # Slope
+#detrend_ts_us_TREP1 <- ts_us_TREP1 - (beta0_TREP1 + beta1_TREP1 * t)
+combined_series_df <- data.frame(month=month(us_TREP1$my_date), us_TREP1$TREP, detrend_ts_us_TREP2, us_TREP_diff1)
 ```
 
 ### Q4
@@ -162,9 +161,12 @@ Using ggplot() create a line plot that shows the three series together. Make sur
 
 ```{r}
 #Using ggplot to create a line plot for the three series
-ggplot(combined_series_df, aes(x=month, y=TREP))
-  geom_line()
-  
+ggplot(combined_series_df,aes(x=as.factor(month))) +
+  geom_line(aes(x=month, y=us_TREP1$TREP), color="red")+
+  geom_line(aes(x=month, y=detrend_ts_us_TREP2), color="blue")+
+  geom_line(aes(x=month, y=us_TREP_diff1), color="green")
+
+
 long_data <- combined_series_df %>% 
   pivot_longer(names_from = "month", values_from = "TREP, detrend_ts_us_TREP1")
 
@@ -191,12 +193,12 @@ Plot the ACF for the three series and compare the plots. Add the argument `ylim=
 par(mfrow=c(1,3))
 acf(us_TREP1$TREP, ylim=c(-0.5,1), lag.max = 40, plot = TRUE)
 
-acf(detrend_ts_us_TREP1, ylim=c(-0.5,1), lag.max = 40,plot = TRUE)
+acf(detrend_ts_us_TREP2, ylim=c(-0.5,1), lag.max = 40,plot = TRUE)
 
 #diff_us_TREP.df <- as.data.frame(diff_us_TREP)
-acf(diff_us_TREP.df$TREP, ylim=c(-0.5,1), lag.max = 40,plot = TRUE)
+acf(us_TREP_diff1, ylim=c(-0.5,1), lag.max = 40,plot = TRUE)
 ```
-### The more efficient method in eliminating the trend is detrending. Becuase detrending enables to estimate the trend and calculate the deviation from the estimated trend in a particular period. 
+### When comparing the ACF plots, the original series shows a gradual decline over time, the detrended using linear regression series shows a decline over time with seasonal pattern, whereas the differenced series shows a total removal of the trend and there is no sign left that show a trend in the series. Thus, the more efficient method in eliminating the trend is the differencing. 
 
 ### Q6
 Compute the Seasonal Mann-Kendall and ADF Test for the original "Total Renewable Energy Production" series. Ask R to print the results. Interpret the results for both test. Whats the conclusion from the Seasonal Mann Kendall test? What's the conclusion for the ADF test? Do they match what you observed in Q2? Recall that having a unit root means the series has a stochastic trend. And when a series has stochastic trend we need to use a different procedure to remove the trend.
@@ -207,40 +209,36 @@ Compute the Seasonal Mann-Kendall and ADF Test for the original "Total Renewable
 SMKtest <- SeasonalMannKendall(ts_us_TREP) # Seasonal Mann-Kendall test
 print("Results for Seasonal Mann Kendall /n")
 print(summary(SMKtest))
+```
 
+### 
+
+```{r}
 ADFtest <- adf.test(us_TREP$TREP) # Agumented Dickey-Fuller test
 print("Results for ADF test /n")
 print(summary(ADFtest)) 
-
 ```
+
 ## Interpret the results of the tests
+
 ### Q7
 
 Aggregate the original "Total Renewable Energy Production" series by year. You can use the same procedure we used in class. Store series in a matrix where rows represent months and columns represent years. And then take the columns mean using function colMeans(). Recall the goal is the remove the seasonal variation from the series to check for trend. 
 
 ```{r}
-# Group data in yearly steps instances
-inflow_data_matrix <- matrix(ts_inflow_data[,iHP],byrow=FALSE,nrow=12)
-inflow_data_yearly <- colMeans(inflow_data_matrix)
-
-library(dplyr)  #move this to package chunk later
-my_year <- c(year(first(my_date)):year(last(my_date)))
-
-inflow_data_new_yearly <- data.frame(my_year, inflow_data_yearly)
-
-ggplot(inflow_data_new_yearly, aes(x=my_year, y=inflow_data_yearly)) +
-            geom_line(color="blue") +
-            geom_smooth(color="red",method="lm") 
-
-
-us_TREP_matrix <- matrix(us_TREP, byrow = FALSE, nrow = 12)
+# Aggregating the original TREP series by year
+# Grouping the data in yearly steps instances
+us_TREP_matrix <- matrix(us_TREP$TREP, byrow = FALSE, nrow = 12)
 us_TREP_yearly <- colMeans(us_TREP_matrix)
+library(dplyr)
+my_year <- c(year(first(us_TREP$my_date)):year(last(us_TREP$my_date)))
+# Aggregating the series by year
+us_TREP_agg_yearly <- data.frame(my_year, us_TREP_yearly)
 
-my_year <- c(year(first(my_date)):year(last(my_date)))
+ggplot(us_TREP_agg_yearly, aes(x=my_year, y=us_TREP_yearly))+
+  geom_line(color="green") +
+  geom_smooth(color="red",method="lm")
 
-us_TREP_yearly <- aggregate(us_TREP$my_date, by=list(month(month), year(my_date)), colMeans())
-
- 
 ```
 
 ### Q8
@@ -248,8 +246,15 @@ us_TREP_yearly <- aggregate(us_TREP$my_date, by=list(month(month), year(my_date)
 Apply the Mann Kendal, Spearman correlation rank test and ADF. Are the results from the test in agreement with the test results for the non-aggregated series, i.e., results for Q6?
 
 ```{r}
-MannKendall()
-cor.test()
-adf.test()
+MKtest <- MannKendall(us_TREP_agg_yearly) # Mann-Kendall test
+print("Results for Mann Kendall /n")
+print(summary(MKtest))
+```
+
+
+```{r}
+SM_corr.test <- cor.test(as.numeric(us_TREP_agg_yearly), method = "spearman") # Spearman Correlation rank test 
+print("Results for Seasonal Mann Kendall /n")
+print(summary(SMKtest))
 ```
 
