@@ -4,7 +4,7 @@ author: "Luana Lima"
 date: "02/10/2021"
 output: pdf_document
 editor_options: 
-  chunk_output_type: inline
+  chunk_output_type: console
 ---
 
 ## Objectives

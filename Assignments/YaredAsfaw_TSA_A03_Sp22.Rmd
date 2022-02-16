@@ -44,7 +44,7 @@ library(openxlsx)
 ```{r}
 # Importing the data set
 library(openxlsx)
-us_energy.data <- read.xlsx("./Data/Raw/Table_10.1_Ren._Energy_PC._by_Source.xlsx", startRow=11)
+us_energy.data <- read.xlsx("./Data/Raw/Table_10.1_Renewable_Energy_Production_and_Consumption_by_Source.xlsx", startRow=11)
 head(us_energy.data) # Looking at the nature of the dataset
 ```
 

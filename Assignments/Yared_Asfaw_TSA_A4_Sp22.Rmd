@@ -1,0 +1,255 @@
+---
+title: "ENV 790.30 - Time Series Analysis for Energy Data | Spring 2022"
+subtitle: "Assignment 4 - Due date 02/17/22"
+author: "Yared S. Asfaw"
+output: pdf_document
+geometry: margin=2.54cm
+editor_options: 
+  chunk_output_type: console
+---
+  
+## Directions
+  
+  You should open the .rmd file corresponding to this assignment on RStudio. The file is available on our class repository on Github. And to do so you will need to fork our repository and link it to your RStudio.  
+
+Once you have the project open the first thing you will do is change "Student Name" on line 3 with your name. 
+Then you will start working through the assignment by  **creating code and output** that answer each question. Be sure to use this assignment document. Your report should contain the answer to each question and any plots/tables you obtained (when applicable).
+
+When you have completed the assignment, **Knit** the text and code into a single PDF file. Rename the pdf file such that it includes your first and last name (e.g., "LuanaLima_TSA_A04_Sp21.Rmd"). Submit this pdf using Sakai. 
+
+R packages needed for this assignment: "xlsx" or "readxl", "ggplot2", "forecast","tseries", and "Kendall". Install these packages, if you haven't done yet. Do not forget to load them before running your script, since they are NOT default packages.\\
+
+```{r setup, include=FALSE} 
+knitr::opts_chunk$set(echo = TRUE,tidy.opts=list(width.cutoff=80), tidy=FALSE) 
+```
+
+
+```{r}
+#Load/install required package here
+library(openxlsx)
+library(ggplot2)
+library(forecast)
+library(tseries)
+library(Kendall)
+library(lubridate)
+library(dplyr)
+library(tidyverse)
+```
+
+## Questions 
+
+Consider the same data you used for A3 from the spreadsheet "Table_10.1_Renewable_Energy_Production_and_Consumption_by_Source.xlsx". The data comes from the US Energy Information and Administration and corresponds to the January 2021 Monthly Energy Review. For this assignment you will work only with the column "Total Renewable Energy Production". 
+
+
+```{r}
+#Importing data set - using xlsx package
+library(openxlsx)
+us_REPC_by_source <- read.xlsx("./Data/Raw/Table_10.1_Renewable_Energy_Production_and_Consumption_by_Source.xlsx", startRow=11)
+head(us_REPC_by_source)
+
+us_TREP <- data.frame(us_REPC_by_source[-1,c(1,5)])
+                              
+class(us_TREP$Total.Renewable.Energy.Production)
+us_TREP$Total.Renewable.Energy.Production <- as.numeric(us_TREP$Total.Renewable.Energy.Production)
+class(us_TREP$Total.Renewable.Energy.Production)
+```
+
+```{r}
+# Renaming the column names for convenience
+colnames(us_TREP) <- c("my_date", "TREP")
+colnames(us_TREP)
+```
+
+
+```{r}
+# Formatting the my_date column to "Date"
+start_date <- as.Date("01/01/1973", format = "%m/%d/%Y") # the date format in the dataset is m/d/y
+us_TREP$my_date <- seq(start_date, by= "month", length.out=585)
+class(us_TREP)
+head(us_TREP)
+```
+
+
+## Stochastic Trend and Stationarity Tests
+
+### Q1
+
+Difference the "Total Renewable Energy Production" series using function diff(). Function diff() is from package base and take three main arguments:
+* *x* vector containing values to be differenced;
+* *lag* integer indicating with lag to use;
+* *differences* integer indicating how many times series should be differenced.
+
+Try differencing at lag 1 only once, i.e., make `lag=1` and `differences=1`. Plot the differenced series Do the series still seem to have trend?
+
+```{r}
+# The plot before differencing
+plot(us_TREP[,2], type="l",col="green", main="U.S. Total Renewable Energy Production (REP)")
+
+# Differencing the "Total Renewable Energy Production" series
+us_TREP_diff <- diff(us_TREP[,2], lag = 1, differences = 1)
+
+# Plotting the diffeernced TREP series with the mean horizontal line to check the trend
+plot(us_TREP_diff, type="l",col="green", main="U.S. Total Renewable Energy Production (REP)")
+abline(h=mean(us_TREP_diff),col="red")
+```
+### No, the differenced series do not show a trend
+
+```{r}
+# Note for draft reference
+ts_us_TREP <- ts(us_TREP, start = c(1973,1), end = c(2021, 09), frequency = 12)
+
+diff_us_TREP <- diff(ts_us_TREP, lag = 1, differences = 1)
+summary(diff_us_TREP)
+```
+
+### Q2
+
+Now let's compare the differenced series with the detrended series you calculated on A3. In other words, for the "Total Renewable Energy Production" compare the differenced series from Q1 with the series you detrended in A3 using linear regression. (Hint: Just copy and paste part of your code for A3)
+
+Copy and paste part of your code for A3 where you compute regression for Total Energy Production and the detrended Total Energy Production
+
+```{r, fig.height=3, fig.width=4}
+# Code from A03 for reference and use
+ts_us_TREP <- ts(us_TREP$TREP, start = c(1973, 1), frequency= 12)
+ts_us_TREP1 <- ts(us_TREP$TREP[-1,], start = c(1973, 1), frequency= 12)
+t <- c(1:585)
+linear_trend_TREP = lm(ts_us_TREP ~ t)
+summary(linear_trend_TREP)
+beta0_TREP <- as.numeric(linear_trend_TREP$coefficients[1]) # Intercept
+beta1_TREP <- as.numeric(linear_trend_TREP$coefficients[2]) # Slope
+detrend_ts_us_TREP <- ts_us_TREP - (beta0_TREP + beta1_TREP * t)
+plot(detrend_ts_us_TREP, type="l",col="blue", main="U.S. Total Renewable Energy Production (REP)", xlab= "Year")
+
+# Comparing the differenced and the detrended series
+
+par(mfrow=c(1,2))
+plot(detrend_ts_us_TREP, type="l",col="blue", main="Detrended U.S. TREP", xlab= "Year")
+plot(us_TREP_diff, type="l",col="green", main="Differenced U.S. TREP")
+```
+### When the TREP series detrended, it shows a random incereasing and decreasing trends over time whereas when it is differenced, the series show no trend at all.
+
+
+### Q3
+Create a data frame with 4 columns: month, original series, detrended by Regression Series and differenced series. Make sure you properly name all columns. Also note that the differenced series will have only 584 rows because you loose the first observation when differencing. Therefore, you need to remove the first observations for the original series and the detrended by regression series to build the new data frame.
+
+```{r}
+#Data frame - remember to note include January 1973
+us_TREP # Original series
+detrend_ts_us_TREP1 # Detrended by regression series
+us_TREP_diff # Differenced series
+
+
+# Removing the first observations from the original series and the detrended by regrression series
+us_TREP1 <- us_TREP[-1,]
+
+# Removing the first observation from the detrended by regrression series
+ts_us_TREP1 <- ts(us_TREP1$TREP, start = c(1973, 1), frequency= 12)
+t <- c(1:584)
+linear_trend_TREP1 = lm(ts_us_TREP1 ~ t)
+summary(linear_trend_TREP1)
+beta0_TREP1 <- as.numeric(linear_trend_TREP1$coefficients[1]) # Intercept
+beta1_TREP1 <- as.numeric(linear_trend_TREP1$coefficients[2]) # Slope
+detrend_ts_us_TREP1 <- ts_us_TREP1 - (beta0_TREP1 + beta1_TREP1 * t)
+
+# Looking for alternative way to remove the first observation from the detrended by regression series directly 
+#detrend_ts_us_TREP1 <- detrend_ts_us_TREP  [-1,]
+
+combined_series_df <- data.frame(month=month(us_TREP1$my_date), us_TREP1, detrend_ts_us_TREP1, diff_us_TREP)
+```
+
+### Q4
+Using ggplot() create a line plot that shows the three series together. Make sure you add a legend to the plot.
+
+```{r}
+#Using ggplot to create a line plot for the three series
+ggplot(combined_series_df, aes(x=month, y=TREP))
+  geom_line()
+  
+long_data <- combined_series_df %>% 
+  pivot_longer(names_from = "month", values_from = "TREP, detrend_ts_us_TREP1")
+
+for(i in 1:584){
+  print(ggplot(combined_series_df, aes(combined_series_df[,(1+i)]))) +
+            geom_line() 
+}
+        
+        #+
+            xlab(paste0("Inflow ",colnames(inflow_data)[(1+i)],sep="")) 
+        )
+
+ggplot(combined_series_df, aes(x=month, y=detrend_ts_us_TREP1))
+  geom_line()
+```
+
+
+### Q5
+Plot the ACF for the three series and compare the plots. Add the argument `ylim=c(-0.5,1)` to the Acf() function to make sure all three y axis have the same limits. Which method do you think was more efficient in eliminating the trend? The linear regression or differencing?
+
+```{r, fig.height=3, fig.width=4}
+#Compare ACFs
+
+par(mfrow=c(1,3))
+acf(us_TREP1$TREP, ylim=c(-0.5,1), lag.max = 40, plot = TRUE)
+
+acf(detrend_ts_us_TREP1, ylim=c(-0.5,1), lag.max = 40,plot = TRUE)
+
+#diff_us_TREP.df <- as.data.frame(diff_us_TREP)
+acf(diff_us_TREP.df$TREP, ylim=c(-0.5,1), lag.max = 40,plot = TRUE)
+```
+### The more efficient method in eliminating the trend is detrending. Becuase detrending enables to estimate the trend and calculate the deviation from the estimated trend in a particular period. 
+
+### Q6
+Compute the Seasonal Mann-Kendall and ADF Test for the original "Total Renewable Energy Production" series. Ask R to print the results. Interpret the results for both test. Whats the conclusion from the Seasonal Mann Kendall test? What's the conclusion for the ADF test? Do they match what you observed in Q2? Recall that having a unit root means the series has a stochastic trend. And when a series has stochastic trend we need to use a different procedure to remove the trend.
+
+```{r}
+# Computing the Seasonal Mann-Kendall and ADF Test for the original TREP series
+
+SMKtest <- SeasonalMannKendall(ts_us_TREP) # Seasonal Mann-Kendall test
+print("Results for Seasonal Mann Kendall /n")
+print(summary(SMKtest))
+
+ADFtest <- adf.test(us_TREP$TREP) # Agumented Dickey-Fuller test
+print("Results for ADF test /n")
+print(summary(ADFtest)) 
+
+```
+## Interpret the results of the tests
+### Q7
+
+Aggregate the original "Total Renewable Energy Production" series by year. You can use the same procedure we used in class. Store series in a matrix where rows represent months and columns represent years. And then take the columns mean using function colMeans(). Recall the goal is the remove the seasonal variation from the series to check for trend. 
+
+```{r}
+# Group data in yearly steps instances
+inflow_data_matrix <- matrix(ts_inflow_data[,iHP],byrow=FALSE,nrow=12)
+inflow_data_yearly <- colMeans(inflow_data_matrix)
+
+library(dplyr)  #move this to package chunk later
+my_year <- c(year(first(my_date)):year(last(my_date)))
+
+inflow_data_new_yearly <- data.frame(my_year, inflow_data_yearly)
+
+ggplot(inflow_data_new_yearly, aes(x=my_year, y=inflow_data_yearly)) +
+            geom_line(color="blue") +
+            geom_smooth(color="red",method="lm") 
+
+
+us_TREP_matrix <- matrix(us_TREP, byrow = FALSE, nrow = 12)
+us_TREP_yearly <- colMeans(us_TREP_matrix)
+
+my_year <- c(year(first(my_date)):year(last(my_date)))
+
+us_TREP_yearly <- aggregate(us_TREP$my_date, by=list(month(month), year(my_date)), colMeans())
+
+ 
+```
+
+### Q8
+
+Apply the Mann Kendal, Spearman correlation rank test and ADF. Are the results from the test in agreement with the test results for the non-aggregated series, i.e., results for Q6?
+
+```{r}
+MannKendall()
+cor.test()
+adf.test()
+```
+
