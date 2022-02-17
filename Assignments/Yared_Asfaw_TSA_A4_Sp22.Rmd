@@ -5,7 +5,7 @@ author: "Yared S. Asfaw"
 output: pdf_document
 geometry: margin=2.54cm
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
   
 ## Directions
@@ -94,14 +94,6 @@ abline(h=mean(us_TREP_diff),col="red")
 ```
 ### No, the differenced series do not show a trend
 
-```{r}
-# Note for draft reference
-ts_us_TREP <- ts(us_TREP, start = c(1973,1), end = c(2021, 09), frequency = 12)
-
-diff_us_TREP <- diff(ts_us_TREP, lag = 1, differences = 1)
-summary(diff_us_TREP)
-```
-
 ### Q2
 
 Now let's compare the differenced series with the detrended series you calculated on A3. In other words, for the "Total Renewable Energy Production" compare the differenced series from Q1 with the series you detrended in A3 using linear regression. (Hint: Just copy and paste part of your code for A3)
@@ -121,13 +113,11 @@ detrend_ts_us_TREP <- ts_us_TREP - (beta0_TREP + beta1_TREP * t)
 plot(detrend_ts_us_TREP, type="l",col="blue", main="U.S. Total Renewable Energy Production (REP)", xlab= "Year")
 
 # Comparing the differenced and the detrended series
-
 par(mfrow=c(1,2))
 plot(detrend_ts_us_TREP, type="l",col="blue", main="Detrended U.S. TREP", xlab= "Year")
 plot(us_TREP_diff, type="l",col="green", main="Differenced U.S. TREP")
 ```
 ### When the TREP series detrended, it shows a random incereasing and decreasing trends over time whereas when it is differenced, the series show no trend at all.
-
 
 ### Q3
 Create a data frame with 4 columns: month, original series, detrended by Regression Series and differenced series. Make sure you properly name all columns. Also note that the differenced series will have only 584 rows because you loose the first observation when differencing. Therefore, you need to remove the first observations for the original series and the detrended by regression series to build the new data frame.
@@ -144,15 +134,6 @@ us_TREP1 <- us_TREP[-1,]
 detrend_ts_us_TREP1 <- as.data.frame(detrend_ts_us_TREP)
 detrend_ts_us_TREP2 <- as.data.frame(detrend_ts_us_TREP1[-1,])
 us_TREP_diff1 <- as.data.frame(us_TREP_diff)
-
-# Removing the first observation from the detrended by regrression series
-#ts_us_TREP1 <- ts(us_TREP1$TREP, start = c(1973, 1), frequency= 12)
-#t <- c(1:584)
-#linear_trend_TREP1 = lm(ts_us_TREP1 ~ t)
-#summary(linear_trend_TREP1)
-#beta0_TREP1 <- as.numeric(linear_trend_TREP1$coefficients[1]) # Intercept
-#beta1_TREP1 <- as.numeric(linear_trend_TREP1$coefficients[2]) # Slope
-#detrend_ts_us_TREP1 <- ts_us_TREP1 - (beta0_TREP1 + beta1_TREP1 * t)
 combined_series_df <- data.frame(month=month(us_TREP1$my_date), us_TREP1$TREP, detrend_ts_us_TREP2, us_TREP_diff1)
 ```
 
@@ -161,41 +142,38 @@ Using ggplot() create a line plot that shows the three series together. Make sur
 
 ```{r}
 #Using ggplot to create a line plot for the three series
-ggplot(combined_series_df,aes(x=as.factor(month))) +
-  geom_line(aes(x=month, y=us_TREP1$TREP), color="red")+
-  geom_line(aes(x=month, y=detrend_ts_us_TREP2), color="blue")+
-  geom_line(aes(x=month, y=us_TREP_diff1), color="green")
+# Create a data frame from the 
+df_combined_series <- data.frame(Month = combined_series_df$month, Original_TREP=combined_series_df$us_TREP1.TREP, Detrended= combined_series_df$detrend_ts_us_TREP1, Differ = combined_series_df$us_TREP_diff)
+
+# Plotting the three series
+ggplot(df_combined_series, aes(x=Month, color=group)) +
+  geom_line(aes(y= Original_TREP), color="green") +
+  geom_line(aes(y=Detrended), color="blue") +
+  geom_line(aes(y=Differ), color="red") +
+  ylab("Values") 
+#+
+  legend()
+
+#  legend(1, 95, legend=c("Original_TREP", "Detrended", "Differ"), col=c("red", "blue"), lty=1:2, cex=0.8) 
+         
+     #    , col = c(3, 4, 6),text.col = "green4", lty = c(2, -1, 1), pch = c(NA, 3, 4), merge = TRUE, bg = "gray90") +
+  ylab("Values") 
+
+legend(1, 95, legend=c("Line 1", "Line 2"),
+       col=c("red", "blue"), lty=1:2, cex=0.8)
 
 
-long_data <- combined_series_df %>% 
-  pivot_longer(names_from = "month", values_from = "TREP, detrend_ts_us_TREP1")
-
-for(i in 1:584){
-  print(ggplot(combined_series_df, aes(combined_series_df[,(1+i)]))) +
-            geom_line() 
-}
-        
-        #+
-            xlab(paste0("Inflow ",colnames(inflow_data)[(1+i)],sep="")) 
-        )
-
-ggplot(combined_series_df, aes(x=month, y=detrend_ts_us_TREP1))
-  geom_line()
 ```
-
 
 ### Q5
 Plot the ACF for the three series and compare the plots. Add the argument `ylim=c(-0.5,1)` to the Acf() function to make sure all three y axis have the same limits. Which method do you think was more efficient in eliminating the trend? The linear regression or differencing?
 
 ```{r, fig.height=3, fig.width=4}
-#Compare ACFs
+#Comparing the ACFs of the original series, detrended by Regression Series and differenced series
 
 par(mfrow=c(1,3))
 acf(us_TREP1$TREP, ylim=c(-0.5,1), lag.max = 40, plot = TRUE)
-
 acf(detrend_ts_us_TREP2, ylim=c(-0.5,1), lag.max = 40,plot = TRUE)
-
-#diff_us_TREP.df <- as.data.frame(diff_us_TREP)
 acf(us_TREP_diff1, ylim=c(-0.5,1), lag.max = 40,plot = TRUE)
 ```
 ### When comparing the ACF plots, the original series shows a gradual decline over time, the detrended using linear regression series shows a decline over time with seasonal pattern, whereas the differenced series shows a total removal of the trend and there is no sign left that show a trend in the series. Thus, the more efficient method in eliminating the trend is the differencing. 
@@ -205,21 +183,19 @@ Compute the Seasonal Mann-Kendall and ADF Test for the original "Total Renewable
 
 ```{r}
 # Computing the Seasonal Mann-Kendall and ADF Test for the original TREP series
-
 SMKtest <- SeasonalMannKendall(ts_us_TREP) # Seasonal Mann-Kendall test
 print("Results for Seasonal Mann Kendall /n")
 print(summary(SMKtest))
 ```
 
-### 
+### The p-value is less than 0.05 showing that the series exhibits a monotonic trend and this trend is an increasing trend (tau = 0.715). In other words, the TREP has an increasing trend overtime.   
 
 ```{r}
-ADFtest <- adf.test(us_TREP$TREP) # Agumented Dickey-Fuller test
+ADFtest <- adf.test(ts_us_TREP) # Agumented Dickey-Fuller test
 print("Results for ADF test /n")
-print(summary(ADFtest)) 
+print(ADFtest) 
 ```
-
-## Interpret the results of the tests
+## The p-value is 0.8161 and the test statistic is -1.4383, and the p-value is geater than 0.05, thus, we fail to reject the null hypotesis (the series is non-stationary). Thus, the TREP series has a time-dependent structure and does not have constant variance over time. 
 
 ### Q7
 
@@ -230,7 +206,7 @@ Aggregate the original "Total Renewable Energy Production" series by year. You c
 # Grouping the data in yearly steps instances
 us_TREP_matrix <- matrix(us_TREP$TREP, byrow = FALSE, nrow = 12)
 us_TREP_yearly <- colMeans(us_TREP_matrix)
-library(dplyr)
+
 my_year <- c(year(first(us_TREP$my_date)):year(last(us_TREP$my_date)))
 # Aggregating the series by year
 us_TREP_agg_yearly <- data.frame(my_year, us_TREP_yearly)
@@ -246,15 +222,28 @@ ggplot(us_TREP_agg_yearly, aes(x=my_year, y=us_TREP_yearly))+
 Apply the Mann Kendal, Spearman correlation rank test and ADF. Are the results from the test in agreement with the test results for the non-aggregated series, i.e., results for Q6?
 
 ```{r}
-MKtest <- MannKendall(us_TREP_agg_yearly) # Mann-Kendall test
+# Checking deterministic trend with Mann Kendall test
+ts_us_TREP_agg_yearly <- as.ts(us_TREP_agg_yearly)
+plot(ts_us_TREP_agg_yearly)
+MKtest <- MannKendall(ts_us_TREP_agg_yearly) 
 print("Results for Mann Kendall /n")
 print(summary(MKtest))
 ```
-
+### The p-value is greater than the significance level 0.05 and thus, we fail to reject the null hypothesis (the series is stationary).
 
 ```{r}
-SM_corr.test <- cor.test(as.numeric(us_TREP_agg_yearly), method = "spearman") # Spearman Correlation rank test 
-print("Results for Seasonal Mann Kendall /n")
-print(summary(SMKtest))
+# Checking stochastic trend with Agumented Dickey-Fuller test 
+ADFtest_yearly <- adf.test(us_TREP_agg_yearly$us_TREP_yearly)  
+print("Results for ADF test /n")
+print(ADFtest_yearly) 
 ```
+### The p-value (0.49) and the test statistic is -2.2085, and the p-value is geater than 0.05 (the significance level), thus, we fail to reject the null hypotesis (the series is non-stationary or contain unit root). Thus, the TREP series has a time-dependent structure or stochastic trend.
+
+```{r}
+# Checking deterministic trend with Spearman Correlation Rank Test
+sp_cor_test1 <- cor.test(us_TREP_agg_yearly$us_TREP_yearly, my_year, method = "spearman")
+print("Results from Spearman Correlation Rank Test")
+print(sp_cor_test1)
+```
+### The p-value is less than the significance level, thus we reject the null hypothesis which says the series is stationary or doesn't have a trend. Therefore, there is a significant association (rho=0.87) between the TREP series and time and this association is a positive deterministic /an increasing trend over time.
 
