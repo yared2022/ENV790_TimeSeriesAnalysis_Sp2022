@@ -3,6 +3,8 @@ title: "Lab 5: Outliers and Missing Data"
 author: "Luana Lima"
 date: "02/17/2022"
 output: pdf_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ## Objectives
@@ -118,7 +120,7 @@ wind_random <- decompose_wind_data$random
 wind_trend <- decompose_wind_data$trend
 wind_seasonal <- decompose_wind_data$seasonal   
 
-#Ex3: Create one data frame with all three vector and teh Date columns from wind_data
+#Ex3: Create one data frame with all three vector and the Date columns from wind_data
 df_wind_decomposed <- data.frame("date"=full_wind_data$Date,wind_trend,wind_seasonal,wind_random)
 
 #Ex4: Inspect the data frame using head() and tail()

@@ -3,6 +3,8 @@ title: "M6: ARIMA Models in R"
 author: "Luana Lima"
 date: "02/14/2022"
 output: pdf_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ## Setting R code chunk options
@@ -26,6 +28,7 @@ library(tseries)
 library(outliers)
 library(tidyverse)
 
+
 #New packages for M6
 #install.packages("cowplot")
 library(cowplot)
@@ -39,7 +42,8 @@ For this module we will work with monthly average for electricity retail price i
 ```{r}
 
 #Importing time series data from text file#
-electricity_price <- read.csv(file="./Data/Average_retail_price_of_electricity_United_States_monthly.csv",header=TRUE,skip=4)
+library(readr)
+electricity_price <- read.csv(file="../Data/Average_retail_price_of_electricity_United_States_monthly.csv",header=TRUE,skip=4)
 
 #Inspect data
 head(electricity_price)
@@ -198,7 +202,7 @@ Some important arguments for Arima() are:
 
 #Remember the order d=1 will perform the differencing, 
 #so lets try ARIMA(1,1,1) on the non-seasonal residential data before differencing
-Model_111 <- Arima(deseasonal_residential_price,order=c(1,1,1),include.drift=TRUE)
+Model_111 <- Arima(deseasonal_residential_price,order=c(1,1,1),include.drift=TRUE) # because we can't determine the p,q, and d from the acf and pacf 
 print(Model_111)
 compare_aic <- data.frame(Model_111$aic)
 
