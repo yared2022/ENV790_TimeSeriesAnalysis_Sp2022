@@ -127,7 +127,7 @@ cat("Number of differencing needed: ",n_diff)
 deseasonal_residential_price_diff <- diff(deseasonal_residential_price,differences=1,lag=1)
 
 #Add the new series to our data frame
-df_residential_full <- data.frame( Month = electricity_price_processed$Month,
+df_residential_full <- data.frame(Month = electricity_price_processed$Month,
                              Residential = electricity_price_processed$Residential,
                              NonSeasonalResidential = as.numeric(deseasonal_residential_price),
                              ResidentialDiff = c(NA,as.numeric(deseasonal_residential_price_diff)))
@@ -201,7 +201,7 @@ ts.plot(SARIMA_manual$residuals)
 Acf(SARIMA_manual$residuals,lag.max=40)
 Pacf(SARIMA_manual$residuals,lag.max=40)
 
-
+# Different 
 ```
 
 ## Automatically fitting seasonal ARIMA to original series
@@ -238,4 +238,5 @@ Pacf(ARIMA_autofit$residuals,lag.max=40)
 ```
 
 ## Discussion: Which one to do? ARIMA or SARIMA?
+SARIMA model allows more possibility to consider the seasonal component, the ARIMA model takes the seasonal component as constant. Thus, SARIMA model is more preferable to model.
 
