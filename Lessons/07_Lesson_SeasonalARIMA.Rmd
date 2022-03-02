@@ -238,5 +238,5 @@ Pacf(ARIMA_autofit$residuals,lag.max=40)
 ```
 
 ## Discussion: Which one to do? ARIMA or SARIMA?
-SARIMA model allows more possibility to consider the seasonal component, the ARIMA model takes the seasonal component as constant. Thus, SARIMA model is more preferable to model.
+###SARIMA model allows more possibility to consider the seasonal component, the ARIMA model takes the seasonal component as constant. Thus, SARIMA model is more preferable to model.
 
