@@ -27,10 +27,10 @@ library(Kendall)
 library(tseries)
 library(outliers)
 library(tidyverse)
-
 #install.packages("smooth")
 library(smooth)
-
+#install.packages("greybox")
+library(greybox)
 ```
 
 ## Importing data
@@ -200,7 +200,6 @@ plot(ts_electricity_price[,"All.sectors"],col="black")
 lines(SES_seas_fit$fitted, col="blue")
 
 ```
-
 
 ## Forecasting with ARIMA
 
