@@ -85,8 +85,8 @@ BR_complete <- inner_join(Rainfall_BR_processed,Temp_BR_processed)
 f_month <- month(first(BR_complete$Date))
 f_year <- year(first(BR_complete$Date))
 
-BR_Rain_ts <- ts(BR_complete$Rainfall,frequency = 12)
-BR_Temp_ts <- ts(BR_complete$Temperature_C,frequency = 12)
+BR_Rain_ts <- ts(BR_complete$Rainfall, start = c(f_year, f_month), frequency = 12)
+BR_Temp_ts <- ts(BR_complete$Temperature_C, c(f_year, f_month), frequency = 12)
 
 ```
 
@@ -110,10 +110,21 @@ Ex1: Which models could be used to forecast the non-seasonal temperature series?
 
 
 ```{r}
+SARIMA_autofit <- auto.arima(BR_Temp_ts_deseas)
+print(SARIMA_autofit)
 
+SARIMA_forecast <- forecast(object = SARIMA_autofit, h = 36)
+plot(SARIMA_forecast)
 
 ```
 
+```{r}
+ARIMA_autofit <- auto.arima(BR_Temp_ts_deseas, max.D = 0, max.P = 0, max.Q = 0)
+print(ARIMA_autofit)
+
+ARIMA_forecast <- forecast(object = ARIMA_autofit, h = 36)
+plot(ARIMA_forecast)
+```
 
 
 ## Forecasting seasonal(original) Temperature 
