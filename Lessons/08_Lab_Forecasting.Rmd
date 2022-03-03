@@ -85,8 +85,13 @@ BR_complete <- inner_join(Rainfall_BR_processed,Temp_BR_processed)
 f_month <- month(first(BR_complete$Date))
 f_year <- year(first(BR_complete$Date))
 
+<<<<<<< HEAD
 BR_Rain_ts <- ts(BR_complete$Rainfall, start = c(f_year, f_month), frequency = 12)
 BR_Temp_ts <- ts(BR_complete$Temperature_C, c(f_year, f_month), frequency = 12)
+=======
+BR_Rain_ts <- ts(BR_complete$Rainfall,start=c(f_year,f_month),frequency = 12)
+BR_Temp_ts <- ts(BR_complete$Temperature_C,start=c(f_year,f_month),frequency = 12)
+>>>>>>> 6701e8a506ef950d12b873fb6baec3da5cb2d847
 
 ```
 
