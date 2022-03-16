@@ -27,10 +27,11 @@ This assignment has general questions about ARIMA Models.
 Packages needed for this assignment: "forecast","tseries". Do not forget to load them before running your script, since they are NOT default packages.\\
 
 ```{r, message=FALSE}
-#Load/install required package here
+#Loading/installing required package 
 library(forecast)
 library(tseries)
-
+#install.packages("sarima")
+library(sarima)
 ```
 
 
@@ -105,11 +106,11 @@ pacf(Model_11)
 \item Look at the ACFs and PACFs. Imagine you had these plots for a data set and you were asked to identify the model, i.e., is it AR, MA or ARMA and the order of each component. Would you be identify them correctly? Explain your answer.
 
 > Answer: In the Model_10, tail off or the gradual diminishing of the tail over time is observed in the ACF plot which is one of the main characterisitics of an AR model. In the PACF plot of Model_10, there is one higly significant spike at lag 1 providing cut off point at lag 1 which will provide the order of p=1. This is one of the other characterisitics of an AR model. Therefore, Model_10 is an AR model with order of p=1, i.e. AR(1).                                                                            
-In Model_01 ACF plot, there are three significant spikes at lags 2, 14 and 15 (but since we are usually intersted in a simple model, we prefer to select the spike at lag 1) which is one of the characterisitcs of an MA model, providing cut off at lag 1 which will provide order q=1. In Model_01 PACF, the tail off or gradually diminishes over time which is one of the other key features of an MA model. Therefore, the Model_01 is an MA model with order of q=1, i.e. MA(1).                                                                                                   In Model_11, the ACF plot there is a tail off or the gradual diminishing of the tail over time which is one of the main characterisitics of an AR model. In the PACF plot of Model_11, there are spikes at lags 1, 2, 3, 4 and 8 (but since we are usually interested in a simple model, we prefer to select the spike at lag 1) which is a feature of AR model. Therefore, the Model_11 looks like an AR model with order of p=1, i.e. AR(1).                                                                    In Model_11, in both ACF and PACF plots, it’s not clear whether they are tailing off or cutting off. This leads the model to looks like an ARMA model. With ARMA, the orders of p and q for AR and MA can be more than one. Thus, a few p and q combinations will help us to get a better score of AIC. To get p value for AR for ARMA model, we will look at the PACF plots of Model_11. The spikes are at 1, 2, 3, 4 and 8. But since we are usually intersted in a simple model, we prefer to select the significant spike at lag 1. Thus, the p value become 1 (i.e. it is AR(1)). To get q value, we will look at ACF plot. There are many spikes that are significant but since we usually prefer to have a simple model, we select the significant spike at lag 1. Thus, the q value become 1 (i.e. it is MA(1)). Therefore, Model_01 looks like an ARMA model with orders of p=1 and q=1, i.e. ARMA(1,1).        
+In Model_01 ACF plot, there are three significant spikes at lags 2, 14 and 15 (but since we are usually intersted in a simple model, we prefer to select the spike at lag 1) which is one of the characterisitcs of an MA model, providing cut off at lag 1 which will provide order q=1. In Model_01 PACF, the tail off or gradually diminishes over time which is one of the other key features of an MA model. Therefore, the Model_01 is an MA model with order of q=1, i.e. MA(1).                                                                                                                       In Model_11, the ACF plot there is a tail off or the gradual diminishing of the tail over time which is one of the main characterisitics of an AR model. In the PACF plot of Model_11, there are spikes at lags 1, 2, 3, 4 and 8 (but since we are usually interested in a simple model, we prefer to select the spike at lag 1) which is a feature of AR model. Therefore, the Model_11 looks like an AR model with order of p=1, i.e. AR(1).                                                                                       In Model_11, in both ACF and PACF plots, it’s not clear whether they are tailing off or cutting off. This leads the model to looks like an ARMA model. With ARMA, the orders of p and q for AR and MA can be more than one. Thus, a few p and q combinations will help us to get a better score of AIC. To get p value for AR for ARMA model, we will look at the PACF plots of Model_11. The spikes are at 1, 2, 3, 4 and 8. But since we are usually intersted in a simple model, we prefer to select the significant spike at lag 1. Thus, the p value become 1 (i.e. it is AR(1)). To get q value, we will look at ACF plot. There are many spikes that are significant but since we usually prefer to have a simple model, we select the significant spike at lag 1. Thus, the q value become 1 (i.e. it is MA(1)). Therefore, Model_01 looks like an ARMA model with orders of p=1 and q=1, i.e. ARMA(1,1).        
 
 \item Compare the ACF and PACF values R computed with the theoretical values you provided for the coefficients. Do they match? Explain your answer.
 
-> Answer: 
+> Answer: The ACF and PACF values that R computed with the theoretical value AR=0.6 are aproximately 0.63 (0.41) and 0.63 (0.47) respectively. The theoretical cofficient of ar=0.6 doesn't match with the computed values.
 
 
 \item Increase number of observations to $n=1000$ and repeat parts (a)-(d).
@@ -147,8 +148,7 @@ pacf(Model_1000_01)
 pacf(Model_1000_11)
 ```
 
-### In Model_1000_10 the ACF plot tails off or gadually diminishes over time which is one of the feature of an AR model. And the PACF plot exhibits one significant spike at lag 1 which is one of the other characterisitcs of an AR model, providing cut off at lag 1 which will provide order p=1. Therefore, the Model_1000_01 looks like an AR model with order of p=1, i.e. AR(1).                                                                                                                           In Model_1000_01 the ACF plot exhibits one significant spike at lag 1 which is one of the characterisitcs of an MA model, providing cut off at lag 1 which will provide order q=1. In Model_1000_01 PACF plot, the tail off or gradually diminishes over time which is one of the other key features of an MA model. Therefore, the Model_1000_01 looks like an MA model with order of q=1, i.e. MA(1).                                                                                                                  In Model_1000_11, in the ACF plot there is a tail off or the gradual diminishing of the tail over time which is one of the main characterisitics of an AR model. In the PACF plot of Model_1000_11, there a significant spike at lag 1 which is one of the other feature of AR model. Therefore, the model looks like an AR model with the order of p=1, i.e. AR(1). Check for possibility of ARMA model
-
+### In Model_1000_10 the ACF plot tails off or gadually diminishes over time which is one of the feature of an AR model. And the PACF plot exhibits one significant spike at lag 1 which is one of the other characterisitcs of an AR model, providing cut off at lag 1 which will provide order p=1. Therefore, the Model_1000_01 looks like an AR model with order of p=1, i.e. AR(1).                                                                                                                                               In Model_1000_01 the ACF plot exhibits one significant spike at lag 1 which is one of the characterisitcs of an MA model, providing cut off at lag 1 which will provide order q=1. In Model_1000_01 PACF plot, the tail off or gradually diminishes over time which is one of the other key features of an MA model. Therefore, the Model_1000_01 looks like an MA model with order of q=1, i.e. MA(1).                                                                                                                                     In Model_1000_11, in the ACF plot there is a tail off or the gradual diminishing of the tail over time which is one of the main characterisitics of an AR model. In the PACF plot of Model_1000_11, there a significant spike at lag 1 which is one of the other feature of AR model. Therefore, the model looks like an AR model with the order of p=1, i.e. AR(1). Check for possibility of ARMA model                                                                                                                      Here, the ACF and PACF values that R computed with the theoretical value AR=0.6 are aproximately 0.63(0.55) and 0.63(0.55) respectively. The theoretical cofficient of ar=0.6 doesn't match with the computed values but as the number of observations increased, the computed values get closer to the theortical value. 
 
 \end{enumerate}
 
@@ -182,22 +182,18 @@ what is the coefficient 0.25
 Plot the ACF and PACF of a seasonal ARIMA$(0, 1)\times(1, 0)_{12}$ model with $\phi =0 .8$ and $\theta = 0.5$ using R. The $12$ after the bracket tells you that $s=12$, i.e., the seasonal lag is 12, suggesting monthly data whose behavior is repeated every 12 months. You can generate as many observations as you like. Note the Integrated part was omitted. It means the series do not need differencing, therefore $d=D=0$. Plot ACF and PACF for the simulated data. Comment if the plots are well representing the model you simulated, i.e., would you be able to identify the order of both non-seasonal and seasonal components from the plots? Explain.
 
 ```{r}
-# seasonal ARIMA(0,0,1)(1,0,0)12, phi=0.8, theta = 0.5, s=12
+#seasonal ARIMA(0,0,1)(1,0,0)12, phi=0.8, theta = 0.5, s=12
 
 SModel_01 = arima(order = c(p, d, q), seasonal = list(order = c(P, D, Q), period = S))
 
-SModel_01 <- arima.sim(list(order=c(0,0,1), ma=0.5), period = 12, n=100)
-
-arima_manual <- arima((order=c(0,0,1), seasonal=c(1,0,0)), ar=0.6, ma=0.5)
-
-w_model_10 = arima.sim(n=100, list(order=c(0,0,1), ar=0.6), innov = rnorm(100))
-print(Model_1000_11)
-
-arima.m <- arima.sim(list(order = c(0,0,1), ma = 0.5), n=100)
-acf(arima.m)
-pacf(arima.m)
+sarima_model <- sim_sarima(model=list(ma=0.5,sar=0.8, nseasons=12), n=1000) par(mfrow=c(1,2))
+acf(sarima_model)
+pacf(sarima_model)
   
-arima.sim(ar = 0.8, d=0, ma=0.5, sar=1, D=0, sma=0, S=12, n=100, rand.gen = rnorm, innov = rnorm(100))
+# The non-seasonal and seasonal components of the model, for the non-seasonal component,                                                                                                                              Looking at the significant spike patterns in the ACF and PACF plots to idenitfy the value of p and q, and then identify the non-seasonal component of the model in the PACF plot, we see a tail off or a gradual decrease in significance and in the ACF plot there is a significant spike at lag 1 that serve as a cut off. These show the process is an MA with an order of q=1. Thus, the non-seasonal part is (0,0,1). For the seasonal component, the PACF plot there is a fewer repeated significant spike patterns at lag 12 in addtion to the significant spike at lag 1, which demonstrates that the process for the seasonal component is an AR with the order of 1. Thus, the seasonal part is (1,0,0).
+
+# For the non-seasonal part, the ACF plot a significant spike at lag 1 and the PACF show a tail off which indicate the process as a MA with q=1. For the seasonal part in the ACF plot a repeated significant spikes pattern shown at lags 12 and 24 in addition to the spike at lag 1, on the other hand in the PACF plot only two significant spikes that show a repeated pattern are available at lags 1 and 12, therefore, the process with fewers significant spikes that show pattern is found in the PACF plot suggesting an AR process with p=1. 
+
 
 ```
 
