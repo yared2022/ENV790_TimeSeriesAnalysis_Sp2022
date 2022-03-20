@@ -48,7 +48,7 @@ Import the csv file and create a time series object for natural gas. Make you su
 ```{r}
 # Importing the dataset
 
-net_gen_all_sectors <- read.csv('./Data/Net_generation_United_States_all_sectors_monthly.csv', skip= 4, header = TRUE, sep = ",", stringsAsFactors = TRUE)
+net_gen_all_sectors <- read.csv('./Data/Net_generation_United_States_all_sectors_monthly.csv', skip= 5, header = TRUE, sep = ",", stringsAsFactors = TRUE)
 
 #net_gen_all_sectors$Month <- seq(start_date, by=month, length.out=12)
 # Formatting the date column to "Date"
@@ -108,8 +108,8 @@ plot(ts.natural_gas_gen_dec)
 deseasoned_natural_gas_gen <- seasadj(ts.natural_gas_gen_dec, "Multiplicative")
 plot(deseasoned_natural_gas_gen)
 par(mfrow=c(1,2))
-acf(deseasoned_natural_gas_gen, lag = 80)
-pacf(deseasoned_natural_gas_gen, lag = 80)
+acf(deseasoned_natural_gas_gen, lag.max = 60)
+pacf(deseasoned_natural_gas_gen, lag.max = 60)
 
 ```
 
@@ -142,9 +142,10 @@ Using the plots from Q2 and test results from Q3 identify the ARIMA model parame
 ```
 
 > From the ADF and Mann Kendall tests, we found out that the series follow a deterministic trend, thus, at least one round differencing is needed to make the series stationary. For this reason, the number of diffeernces for the non-seasonal component,d, will have a value of 1, i.e. d=1.
-From the ACF and PACF plots of the deseasonalized series, it can be seen that the ACF plot show a decreasing trend that fades over time, and in the PACF plot, there are some significant spikes below lag 1, the most closest to lag one being at 0.9, for assigning meaningful order and simplicity we choose the cut off point to be at lag 1. Thus, these features are the characterisitcs of an AR process. Therefore, the values for the parameters p and q are 1 and 0 respectively, i.e. p=1 and q=0.
+From the ACF and PACF plots of the deseasonalized series, it can be seen that the ACF plot show a decreasing trend that fades over time, and in the PACF plot, there are some significant spikes below lag 1 and around lag 4. Of the available significant spikes, the most logical and significant spike is the spike around lag 4, thus, for assigning meaningful order and simplicity we choose the cut off point to be at lag 4. These features are the characterisitcs of an AR process. Therefore, the values for the parameters p and q are 4 and 0 respectively, i.e. p=4 and q=0.
+{the most closest to lag one being at 0.9, for assigning meaningful order and simplicity we choose the cut off point to be at lag 1. Thus, these features are the characterisitcs of an AR process. Therefore, the values for the parameters p and q are 1 and 0 respectively, i.e. p=1 and q=0.}
 
-> Hence, the ARIMA model parameters are p=1, d=1, and q=0
+> Hence, the ARIMA model parameters are p=4, d=1, and q=0
 
 ### Q5
 
@@ -160,7 +161,10 @@ cat("Number of differencing needed: ",n_diff)
 diff_deseasoned_natural_gas_gen <- diff(deseasoned_natural_gas_gen, differences=1,lag=1)
 # Fiting an arima model to the differenced series
 # In fitting the series to the arima model, the constant "include.mean" should be false as we have differenced the seires, and the "include.drift" should be true to see the arima errors fitted.
-arima_model <- Arima(diff_deseasoned_natural_gas_gen, order = c(1,1,0), include.mean = FALSE, include.drift = TRUE)  
+arima_model <- Arima(diff_deseasoned_natural_gas_gen, order = c(4,1,0), include.mean = FALSE, include.drift = TRUE)  
+print(arima_model)
+
+arima_model2 <- Arima(diff_deseasoned_natural_gas_gen, order = c(1,1,0), include.mean = FALSE, include.drift = TRUE)  
 print(arima_model)
 
 ```
@@ -192,8 +196,8 @@ ts.net_gen_natural_gas <- ts(net_gen_natural_gas$Natural_gas_gen_MWH, start = c(
 # Plotting the time series object and the acf and pacf plots
 plot(ts.net_gen_natural_gas)
 par(mfrow=c(1,2))
-acf(ts.net_gen_natural_gas, lag=80)
-pacf(ts.net_gen_natural_gas, lag=80)
+acf(ts.net_gen_natural_gas, lag.max = 60)
+pacf(ts.net_gen_natural_gas, lag.max=60)
 # The ACF plot clearly indicate the seasonality by spikes at equally spaced lags. Therefore, to achieve stationarity, the series has to be seasonally differenced. For this we need to find out the number of seasonal differences needed
 ns_diff <- nsdiffs(ts.net_gen_natural_gas,test = c("seas", "ocsb", "hegy", "ch"),max.D = 1)
 cat("Number of seasonal differences:", ns_diff)
@@ -217,7 +221,7 @@ print(arima_seasonal_model)
 residuals_net_gen_natural_gas_diff <- checkresiduals(net_gen_natural_gas_diff, lag=12)
 print(residuals_net_gen_natural_gas_diff)
 
-# Here also, the residual series looks like a white noise series because it doesn't show a trend as well as a seasonal pattern, it moves on and around 0, as shown in the histogram, the residuals follow a normal distribution, and in the ACF plot there seem a trend and seasonality, but not log lasting or changes over time. 
+# Here also, the residual series looks like a white noise series because it doesn't show a trend as well as a seasonal pattern, it moves on and around 0, as shown in the histogram, the residuals follow a normal distribution, and in the ACF plot there seem a trend and seasonality, but not long lasting or changes over time. 
 ```
 
 
