@@ -5,7 +5,7 @@ date: "03/13/2022"
 output: pdf_document
 always_allow_html: true
 editor_options: 
-  chunk_output_type: inline
+  chunk_output_type: console
 ---
 
 ## Setting R code chunk options
@@ -182,7 +182,7 @@ plot(SNAIVE_seas)
 
 # Model 3:  SARIMA 
 #remember auto.arima does not call the forecast() internally so we need one more step
-SARIMA_for <- forecast(SARIMA_autofit,h=12)
+SARIMA_for <- forecast::forecast(SARIMA_autofit,h=12)
 SARIMA_scores <- accuracy(SARIMA_for)
 plot(SARIMA_for)
 
@@ -198,7 +198,7 @@ seas_scores <- as.data.frame(rbind(MEAN_scores, SNAIVE_scores, SARIMA_scores))
 row.names(seas_scores) <- c("MEAN", "SNAIVE","SARIMA")
 
 #choose model with lowest RMSE
-best_model_index <- which.min(seas_scores[,"RMSE"])
+best_model_index <- which.min(seas_scores[,"RMSE"]) # can be used for the comp. ass.
 cat("The best model by RMSE is:", row.names(seas_scores[best_model_index,]))                       
                             
 ```

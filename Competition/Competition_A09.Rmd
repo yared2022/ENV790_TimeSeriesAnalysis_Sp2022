@@ -1,0 +1,69 @@
+---
+title: "Forecasting competition"
+author: "Yared S. Asfaw"
+date: '2022-03-16'
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#Loading/installing required package 
+library(readxl)
+library(openxlsx)
+library(forecast)
+library(tseries)
+#install.packages("sarima")
+library(sarima)
+
+```
+ 
+
+
+```{r}
+# Importing the dataset
+
+library(readxl)
+electricity_demand <- read_excel("Competition/Data/load.xlsx")
+
+summary(electricity_demand)
+
+# Converting the hourly demand to daily demand 
+
+daily_ele_demand <- electricity_demand %>% 
+  group_by(date) %>% 
+    mutate(h24=sum(h1:h24)) %>% 
+  select(meter_id, date, h24) %>% 
+  rename(daily_ele_demand=h24)
+
+head(daily_ele_demand)
+
+# Changing the date format to "Date"
+daily_ele_demand$date <- as.Date(daily_ele_demand$date, format="%m/%d/%Y")
+
+# Creating a time series object
+
+ts.daily_ele_demand <- msts(daily_ele_demand$daily_ele_demand, start=c(01/01/2005), tsfrequency= 365)
+
+msts(daily_ele_demand$daily_ele_demand, )
+
+msts(data, seasonal.periods, ts.frequency = floor(max(seasonal.periods)), ...)
+
+
+
+
+
+
+```
+
+
+
+```{r}
+plot(electricity_demand)
+```
+
+
