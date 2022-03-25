@@ -25,7 +25,7 @@ When you have completed the assignment, **Knit** the text and code into a single
 knitr::opts_chunk$set(echo = TRUE,tidy.opts=list(width.cutoff=80), tidy=FALSE) 
 ```
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 #Loading/installing required package 
 library(forecast)
 library(tseries)
@@ -33,6 +33,7 @@ library(lubridate)
 library(tidyverse)
 library(dplyr)
 library(Kendall)
+library(outliers)
 ```
 
 ## Importing and processing the data set
@@ -48,9 +49,9 @@ Import the csv file and create a time series object for natural gas. Make you su
 ```{r}
 # Importing the dataset
 
-net_gen_all_sectors <- read.csv('./Data/Net_generation_United_States_all_sectors_monthly.csv', skip= 5, header = TRUE, sep = ",", stringsAsFactors = TRUE)
+net_gen_all_sectors <- read.csv('./Data/Net_generation_United_States_all_sectors_monthly.csv', 
+skip= 4, header = TRUE, sep = ",", stringsAsFactors = TRUE)
 
-#net_gen_all_sectors$Month <- seq(start_date, by=month, length.out=12)
 # Formatting the date column to "Date"
 net_gen_all_sectors$Month <- my(net_gen_all_sectors$Month)
 # Selecting the natural gas column only
@@ -70,27 +71,15 @@ ts.natural_gas_gen <- ts(net_gen_natural_gas$Natural_gas_gen_MWH, start = c(2001
 plot(ts.natural_gas_gen)
 
 par(mfrow=c(1,2))
-acf(ts.natural_gas_gen)
-pacf(ts.natural_gas_gen)
+Acf(ts.natural_gas_gen, lag.max = 60)
+Pacf(ts.natural_gas_gen, lag.max = 60)
 
-# To plot using ggplot
-ts.natural_gas_gen.df <- as.data.frame(cbind(date=as.Date(net_gen_natural_gas$Date), ts.natural_gas_gen))
+# Plotting using autoplot
 
-ggplot(ts.natural_gas_gen.df, aes(x=Date, y= ts.natural_gas_gen))+
-  geom_line(color="blue") +
-  geom_smooth(color="red", method = "lm")+
-  ylab(label = "Generation in MWH") +
-  xlab(label = "Year")+
-  ggtitle("US Net Natural Gas Generation")
-
-
-# Plotting the time series object and the acf and pacf plots
-ggplot(net_gen_natural_gas, aes(x=Date, y= Natural_gas_gen_MWH))+
-  geom_line(color="blue") +
-  geom_smooth(color="red", method = "lm")+
-  ylab(label = "Generation in MWH") +
-  xlab(label = "Year")+
-  ggtitle("US Net Natural Gas Generation")
+autoplot(ts.natural_gas_gen) +
+    ylab("Generation in MWH") +
+    xlab("Year") +
+    labs(title = "US Net Natural Gas Generation")
 
 ```
 
@@ -99,7 +88,7 @@ ggplot(net_gen_natural_gas, aes(x=Date, y= Natural_gas_gen_MWH))+
 Using the $decompose()$ or $stl()$ and the $seasadj()$ functions create a series without the seasonal component, i.e., a deseasonalized natural gas series. Plot the deseasonalized series over time and corresponding ACF and PACF. Compare with the plots obtained in Q1.
 
 ```{r}
-# Decomposing the time series object in to its components 
+# Decomposing the time series object into its components 
 ts.natural_gas_gen_dec <- stl(ts.natural_gas_gen, s.window = "periodic") 
 plot(ts.natural_gas_gen_dec)
 
@@ -108,10 +97,12 @@ plot(ts.natural_gas_gen_dec)
 deseasoned_natural_gas_gen <- seasadj(ts.natural_gas_gen_dec, "Multiplicative")
 plot(deseasoned_natural_gas_gen)
 par(mfrow=c(1,2))
-acf(deseasoned_natural_gas_gen, lag.max = 60)
-pacf(deseasoned_natural_gas_gen, lag.max = 60)
+Acf(deseasoned_natural_gas_gen, lag.max = 60)
+Pacf(deseasoned_natural_gas_gen, lag.max = 60)
 
 ```
+
+### In Q1, the plot show an increasing trend and a clear seasonal pattern whereas in Q2 where the seasonal component of the series is removed, the increasing trend still exists but the seasonal pattern is no more availble. Similarly, in the ACF plot of Q1, the seasonal pattern is clearly indicated with a slight decreasing in significance of spikes over time but in ACF plot of the deseasoned series, there is no seasonal pattern but only decreasing trend is observed. In the PACF plot of Q1, there are some significant spikes around lag 1, the most significant spike being at lag 1. On the other hand, for the deseasoned series in Q2, there is only one significant spike at lag 1.
 
 ## Modeling the seasonally adjusted or deseasonalized series
 
@@ -119,19 +110,21 @@ pacf(deseasoned_natural_gas_gen, lag.max = 60)
 
 Run the ADF test and Mann Kendall test on the deseasonalized data from Q2. Report and explain the results.
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 # Conducting the ADF and Mann Kendall tests on the deseasoned series
-ADFtest <- adf.test(deseasoned_natural_gas_gen)
-print(ADFtest)
-
-# The p-value is smaller than the significance level, thus we reject the null hypothesis and say that the series has no stochastic trend or it has no unit root, it is stationary.
 
 MKtest <- MannKendall(deseasoned_natural_gas_gen)
 print(MKtest)
-
-# The p-value is smaller than the significance level, thus, we reject the null hypothesis that says the series is stationary. Therefore, the series has a deterministic downward monotonic trend (tau = -0.844).
-
 ```
+
+### In the Mann Kendall test, the p-value is smaller than the significance level, thus, we reject the null hypothesis that says the series is stationary. Therefore, the series has a deterministic monotonic increasing trend (tau = 0.844) over time.
+
+```{r, warning=FALSE, message=FALSE}
+ADFtest <- adf.test(deseasoned_natural_gas_gen)
+print(ADFtest)
+```
+
+### In the ADF test, the p-value is smaller than the significance level, thus we reject the null hypothesis and say that the series has no stochastic trend or it has no unit root.
 
 ### Q4
 
@@ -141,18 +134,17 @@ Using the plots from Q2 and test results from Q3 identify the ARIMA model parame
 
 ```
 
-> From the ADF and Mann Kendall tests, we found out that the series follow a deterministic trend, thus, at least one round differencing is needed to make the series stationary. For this reason, the number of diffeernces for the non-seasonal component,d, will have a value of 1, i.e. d=1.
-From the ACF and PACF plots of the deseasonalized series, it can be seen that the ACF plot show a decreasing trend that fades over time, and in the PACF plot, there are some significant spikes below lag 1 and around lag 4. Of the available significant spikes, the most logical and significant spike is the spike around lag 4, thus, for assigning meaningful order and simplicity we choose the cut off point to be at lag 4. These features are the characterisitcs of an AR process. Therefore, the values for the parameters p and q are 4 and 0 respectively, i.e. p=4 and q=0.
-{the most closest to lag one being at 0.9, for assigning meaningful order and simplicity we choose the cut off point to be at lag 1. Thus, these features are the characterisitcs of an AR process. Therefore, the values for the parameters p and q are 1 and 0 respectively, i.e. p=1 and q=0.}
+> From the ADF and Mann Kendall tests, we found out that the series follow a deterministic trend, thus, at least one round differencing is needed to make the series stationary. For this reason, the number of differences for the non-seasonal component,d, will have a value of 1, i.e. d=1.
+From the ACF and PACF plots of the deseasonalized series, it can be seen that the ACF plot show a decreasing trend that fades over time, and in the PACF plot, there is one significant spike at lag 1 that gives a cut off point. These features are the characterisitcs of an AR process. Therefore, the values for the parameters p and q are 1 and 0 respectively, i.e. p=1 and q=0.
 
-> Hence, the ARIMA model parameters are p=4, d=1, and q=0
+> Hence, the ARIMA model parameters are p=1, d=1, and q=0
 
 ### Q5
 
 Use $Arima()$ from package "forecast" to fit an ARIMA model to your series considering the order estimated in Q4. Should you allow for constants in the model, i.e., $include.mean = TRUE$ or $include.drift=TRUE$. **Print the coefficients** in your report. Hint: use the $cat()$ function to print.
 
 ```{r}
-# Fitting an ARIMA model to the series with order (1,1,0)
+# Fitting an ARIMA model to the series with order (4,1,0)
 # Since the series has a trend it needs to be differenced. 
 # Checking for the number of differences needed
 n_diff <- ndiffs(deseasoned_natural_gas_gen, alpha = 0.1, test = c("kpss", "adf", "pp"), max.d = 2)
@@ -160,14 +152,11 @@ cat("Number of differencing needed: ",n_diff)
 # Differencing the series once, at lag 1 to remove the trend.
 diff_deseasoned_natural_gas_gen <- diff(deseasoned_natural_gas_gen, differences=1,lag=1)
 # Fiting an arima model to the differenced series
-# In fitting the series to the arima model, the constant "include.mean" should be false as we have differenced the seires, and the "include.drift" should be true to see the arima errors fitted.
-arima_model <- Arima(diff_deseasoned_natural_gas_gen, order = c(4,1,0), include.mean = FALSE, include.drift = TRUE)  
+arima_model <- Arima(diff_deseasoned_natural_gas_gen, order = c(1,1,0), 
+include.mean = FALSE, include.drift = TRUE)  
 print(arima_model)
-
-arima_model2 <- Arima(diff_deseasoned_natural_gas_gen, order = c(1,1,0), include.mean = FALSE, include.drift = TRUE)  
-print(arima_model)
-
 ```
+### In fitting the series to the arima model, the constant "include.mean" should be false as we have differenced the seires, and thus, the series will have a mean of zero. On the other hand, the "include.drift" should be set true to allow and see small deviation from zero.
 
 ### Q6
 
@@ -175,8 +164,8 @@ Now plot the residuals of the ARIMA fit from Q5 along with residuals ACF and PAC
 
 ```{r, warning=FALSE}
 # Plotting the residual series of the ARIMA fit
-residuals_diff_deseasoned_natural_gas_gen <- checkresiduals(diff_deseasoned_natural_gas_gen, lag=1)
-print(residuals_diff_deseasoned_natural_gas_gen)
+checkresiduals(diff_deseasoned_natural_gas_gen, lag=12)
+
 ```
 
 > Yes, the residual series looks like a white noise series becuase it doesn't show a trend as well as a seasonal pattern, as shown in the histogram, the residuals follow a normal distribution, and in the ACF plot as well trend and seasonality are not seen. 
@@ -187,57 +176,64 @@ print(residuals_diff_deseasoned_natural_gas_gen)
 
 Repeat Q4-Q6 for the original series (the complete series that has the seasonal component). Note that when you model the seasonal series, you need to specify the seasonal part of the ARIMA model as well, i.e., $P$, $D$ and $Q$.
 
-```{r}
-# 
-net_gen_natural_gas
+```{r, warning=FALSE, message=FALSE}
+#The original series is net_gen_natural_gas
 # Creating the time series object for the original series
-ts.net_gen_natural_gas <- ts(net_gen_natural_gas$Natural_gas_gen_MWH, start = c(2001,01), frequency = 12)
+ts.net_gen_natural_gas <- ts(net_gen_natural_gas$Natural_gas_gen_MWH, start = c(2001,01), 
+frequency = 12)
 
 # Plotting the time series object and the acf and pacf plots
 plot(ts.net_gen_natural_gas)
 par(mfrow=c(1,2))
-acf(ts.net_gen_natural_gas, lag.max = 60)
-pacf(ts.net_gen_natural_gas, lag.max=60)
-# The ACF plot clearly indicate the seasonality by spikes at equally spaced lags. Therefore, to achieve stationarity, the series has to be seasonally differenced. For this we need to find out the number of seasonal differences needed
+Acf(ts.net_gen_natural_gas, lag.max = 40)
+Pacf(ts.net_gen_natural_gas, lag.max= 40)
+# The ACF plot clearly indicate the seasonality by spikes at equally spaced lags. 
+# Therefore, to achieve stationarity, the series has to be seasonally differenced. 
+# For this we need to find out the number of seasonal differences needed
 ns_diff <- nsdiffs(ts.net_gen_natural_gas,test = c("seas", "ocsb", "hegy", "ch"),max.D = 1)
 cat("Number of seasonal differences:", ns_diff)
-
+# The number of seasonal differences needed to achieve statinarity is 1, i.e. D=1
 # Differencing the series to remove the seasonal trend
 net_gen_natural_gas_diff <- diff(ts.net_gen_natural_gas, lag = 12, differences = 1)
 plot(net_gen_natural_gas_diff)
 
-par(mfrow=c(1,2))
-acf(net_gen_natural_gas_diff, lag.max = 60)
-pacf(net_gen_natural_gas_diff, lag.max = 60)
-
-# Looking at the ACF and PACF plots, in the PACF plot there are multiple significant spikes at seasonal lags, and in the ACF plot, there is one significant spike at lag 1. These are the features of a SMR process giving the value of Q to be equal to 1, i.e. Q=1 and thus, P=0. Therefore, the ARIMA model for the seasonal component of the series is in the order of (0,1,1). Hence, combining with the non-seasonal component with the seasonal component the ARIMA model becomes ARIMA(1,0,1)(0,1,1)[12].
-
-# Fiting an arima model to the differenced seasonal series
-# In fitting the seasonal series to the arima model, the constant "include.mean" should be false as we have differenced the seires, and the "include.drift" should be true to see the arima errors fitted.
-arima_seasonal_model <- Arima(net_gen_natural_gas_diff, seasonal = c(1,1,0), include.mean = FALSE, include.drift = TRUE)  
-print(arima_seasonal_model)
-
-# Plotting the residual of the seasonal series of the ARIMA fit
-residuals_net_gen_natural_gas_diff <- checkresiduals(net_gen_natural_gas_diff, lag=12)
-print(residuals_net_gen_natural_gas_diff)
-
-# Here also, the residual series looks like a white noise series because it doesn't show a trend as well as a seasonal pattern, it moves on and around 0, as shown in the histogram, the residuals follow a normal distribution, and in the ACF plot there seem a trend and seasonality, but not long lasting or changes over time. 
 ```
 
+```{r}
+par(mfrow=c(1,2))
+Acf(net_gen_natural_gas_diff, lag.max = 40)
+Pacf(net_gen_natural_gas_diff, lag.max = 40)
+```
+
+### Looking at the ACF and PACF plots, the ACF plot clearly indicates the seasonality by multiple spikes at equally spaced lags (in the ACF plot there are multiple significant spikes at seasonal lags - in an interval of 12) indicating that the value of s is 12, i.e. s=12, and in the PACF plot, there is one significant spike at lag 1. These are the features of a SAR process giving the value of P to be equal to 1, i.e. P=1 and thus, Q=0. Therefore, the ARIMA model for the seasonal component of the series is in the order of (1,1,0). Hence, combining with the non-seasonal component with the seasonal component the ARIMA model becomes ARIMA(1,1,0)(1,1,0)[12].
+
+```{r, message=FALSE, warning=FALSE}
+# Fiting an arima model to the differenced seasonal series
+arima_seasonal_model <- Arima(net_gen_natural_gas_diff, order = c(1,1,0), seasonal = c(1,1,0), include.mean = FALSE, include.drift = TRUE)  
+print(arima_seasonal_model)
+```
+
+### In fitting the seasonal series to the arima model, the constant "include.mean" should be false as we have differenced the seires, and the "include.drift" should be true to allow and see some deviation from zero mean.
+
+```{r, message=FALSE, warning=FALSE}
+# Plotting the residual of the seasonal series of the ARIMA fit
+checkresiduals(net_gen_natural_gas_diff, lag=12)
+
+```
+
+### Here also, the residual series looks like a white noise series because it doesn't show a trend as well as a seasonal pattern, it moves on and around 0, as shown in the histogram, the residuals follow a normal distribution, and in the ACF plot there seem a trend and seasonality, but not long lasting or changes over time. 
 
 ### Q8
 
 Compare the residual series for Q7 and Q6. Can you tell which ARIMA model is better representing the Natural Gas Series? Is that a fair comparison? Explain your response.
 
-```{r}
-par(mfrow=c(1,2)); par(margin(4,4,4,4))
-residuals_diff_deseasoned_natural_gas_gen <- checkresiduals(diff_deseasoned_natural_gas_gen, lag=1)
-print(residuals_diff_deseasoned_natural_gas_gen)
-residuals_net_gen_natural_gas_diff <- checkresiduals(net_gen_natural_gas_diff, lag=12)
-print(residuals_net_gen_natural_gas_diff)
+```{r, warning=FALSE, message=FALSE}
+# Comparing the residuals of the deseasoned and original series
+checkresiduals(diff_deseasoned_natural_gas_gen, lag=12)
+checkresiduals(net_gen_natural_gas_diff, lag=12)
 ```
 
-### The two ARIMA models are different as one has seasonal component and the other removed the seasonal component. Thus, the comparision between the two is not be a fair comparision. Otherwise, looking at the residuals of the two ARIMA models, the residual of the deseasoned series show that it is better positioned on and around zero, and has a much better normal distribution, when compared with the residuals of the seasonal series, thus the ARIMA model of the deseasoned series seem better representing the Natural Gas Series. 
+### The two ARIMA models are different as one has the seasonal component but the other dosen't have the seasonal component. Thus, the comparision between the two is not a logical or fair comparision. Otherwise, looking at the residuals of the two ARIMA models, the residual of the deseasoned series show that it is better positioned on and around zero, and has a much better normal distribution, when compared with the residuals of the original (that has seasonal component) series, thus the ARIMA model of the deseasoned series seem to better representing the Natural Gas Series. 
 
 ## Checking your model with the auto.arima()
 
@@ -247,32 +243,21 @@ print(residuals_net_gen_natural_gas_diff)
 
 Use the $auto.arima()$ command on the **deseasonalized series** to let R choose the model parameter for you. What's the order of the best ARIMA model? Does it match what you specified in Q4?
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 # Checking the deseasoned series with auto.arima function to get the model parameter from R
 arima_autofit <- auto.arima(diff_deseasoned_natural_gas_gen, max.D = 0, max.P = 0, max.Q = 0)
 print(arima_autofit)
-
-par(mfrow=c(1,3))
-ts.plot(arima_autofit$residuals)
-acf(arima_autofit$residuals,lag.max=40)
-pacf(arima_autofit$residuals,lag.max=40)
-
 ```
-### The order of the best ARIMA model of the deseasoned series obtained from R is ARIMA(4,0,4), this doesn't match with the order that is specified under question number 4, i.e. ARIMA(1,1,0).
+### The order of the best ARIMA model of the deseasoned series obtained from R is ARIMA(1,0,1), this doesn't match with the order that is specified under question number 4, i.e. ARIMA(1,1,0).
 
 ### Q10
 
 Use the $auto.arima()$ command on the **original series** to let R choose the model parameters for you. Does it match what you specified in Q7?
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 arima_autofit_original <- auto.arima(ts.net_gen_natural_gas)
 print(arima_autofit_original)
 
-par(mfrow=c(1,3))
-ts.plot(arima_autofit_original$residuals)
-acf(arima_autofit_original$residuals,lag.max=40)
-pacf(arima_autofit_original$residuals,lag.max=40)
-
 ```
 
-### The order of the best ARIMA model for the original series obtained from R is ARIMA(1,0,1)(0,1,1)[12], this matches with the order that is specified under question number 7. 
+### The order of the best ARIMA model for the original series obtained from R is ARIMA(1,0,0)(0,1,1)[12], this as well doesn't match with the order that is specified under question number 7. 
