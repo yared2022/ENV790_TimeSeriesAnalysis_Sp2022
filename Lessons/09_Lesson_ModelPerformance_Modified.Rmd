@@ -188,7 +188,7 @@ plot(SNAIVE_seas)
 
 # Model 3:  SARIMA 
 #remember auto.arima does not call the forecast() internally so we need one more step
-SARIMA_for <- forecast(SARIMA_autofit,h=12)
+SARIMA_for <- forecast::forecast(SARIMA_autofit,h=12)
 SARIMA_scores <- accuracy(SARIMA_for$mean,observed)
 plot(SARIMA_for)
 
@@ -229,6 +229,13 @@ Create a code that plots all forecasted values and observed values together.
 ```{r}
 #Create a data frame where first column is observed and the other columns correspond to forecast for each of the three models.
 
+observed_forecasted.df <- data.frame(date=electricity_price_processed$Month[(nobs-n_for+1):nobs], observed, MEAN_seas$mean, SNAIVE_seas$mean,SARIMA_for$mean)
+
+ggplot(observed_forecasted.df, aes(x= date))+
+  geom_line(aes(y=observed), color="black")+
+  geom_line(aes(y=MEAN_seas$mean), color="green")+
+  geom_line(aes(y=SNAIVE_seas$mean), color="blue")+
+   geom_line(aes(y=SARIMA_for$mean), color="red")
 
 #Use ggplot to show observed and forecast on a single plot.
 
